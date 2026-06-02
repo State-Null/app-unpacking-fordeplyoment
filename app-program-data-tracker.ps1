@@ -1,8 +1,19 @@
 # ==============================================================================
 # Script Name: app-program-data-tracker.ps1
 # Description: Takes two snapshots of a specified directory and compares them to
-#              identify new, modified, or deleted files. Useful for finding config
-#              XMLs, INIs, or logs written to AppData or ProgramData.
+#              identify new, modified, or deleted files.
+#
+# --- APPLICATION CONFIGURATION CAPTURE PREAMBLE ---
+# This script is designed to capture USER CONFIGURATIONS (settings changed via 
+# GUI) after an application is already installed. It is NOT an "installation
+# capture" tool to repackage installers.
+#
+# Correct Workflow:
+# 1. Install the application first.
+# 2. Start this script (it takes a baseline snapshot of the installed system).
+# 3. Open the application GUI and toggle the settings you wish to deploy.
+# 4. CLOSE the application completely (so it commits settings from memory to disk/registry).
+# 5. Press ENTER in this PowerShell terminal to compare and view changes.
 # ==============================================================================
 
 # ==============================================================================

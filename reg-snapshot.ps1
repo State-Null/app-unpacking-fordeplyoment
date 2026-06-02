@@ -2,7 +2,18 @@
 # Script Name: reg-snapshot.ps1
 # Description: Takes two snapshots of a specified Registry path and compares them
 #              to identify new, modified, or deleted registry keys and values.
-#              Useful for finding registry configurations written by GUI tools.
+#
+# --- APPLICATION CONFIGURATION CAPTURE PREAMBLE ---
+# This script is designed to capture USER CONFIGURATIONS (settings changed via 
+# GUI) after an application is already installed. It is NOT an "installation
+# capture" tool to repackage installers.
+#
+# Correct Workflow:
+# 1. Install the application first.
+# 2. Start this script (it takes a baseline snapshot of the installed system).
+# 3. Open the application GUI and toggle the settings you wish to deploy.
+# 4. CLOSE the application completely (so it commits settings from memory to disk/registry).
+# 5. Press ENTER in this PowerShell terminal to compare and view changes.
 # ==============================================================================
 
 # ==============================================================================
