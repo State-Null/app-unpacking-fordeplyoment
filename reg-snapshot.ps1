@@ -1,7 +1,7 @@
 # ==============================================================================
 # Script Name: reg-snapshot.ps1
-# Description: Takes two snapshots of a specified Registry path and compares them
-#              to identify new, modified, or deleted registry keys and values.
+# Description: Takes snapshots of both HKCU and HKLM Registry paths and compares
+#              them to identify new, modified, or deleted keys/values.
 #
 # --- APPLICATION CONFIGURATION CAPTURE PREAMBLE ---
 # This script is designed to capture USER CONFIGURATIONS (settings changed via 
@@ -10,7 +10,7 @@
 #
 # Correct Workflow:
 # 1. Install the application first.
-# 2. Start this script (it takes a baseline snapshot of the installed system).
+# 2. Start this script (it takes a baseline snapshot of HKCU and HKLM).
 # 3. Open the application GUI and toggle the settings you wish to deploy.
 # 4. CLOSE the application completely (so it commits settings from memory to disk/registry).
 # 5. Press ENTER in this PowerShell terminal to compare and view changes.
@@ -19,8 +19,7 @@
 # ==============================================================================
 # CONFIGURATION VARIABLES
 # ==============================================================================
-$RegistryRoot  = "HKCU:\Software"   # The registry hive/path to scan (e.g., HKCU:\Software or HKLM:\Software)
-$FilterKeyword = "PublisherOrAppName" # Filters keys/values containing this keyword. Leave empty "" for all (caution: lots of noise!).
+$FilterKeyword = "AVer" # Filters keys/values containing this keyword (starts with)
 # ==============================================================================
 
 function Get-RegistrySnapshot {
@@ -32,7 +31,7 @@ function Get-RegistrySnapshot {
     $snapshot = @{}
     Get-ChildItem -Path $Path -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
         $keyPath = $_.Name
-        # Apply filter keyword if defined
+        
         # Split path by backslash and check if any component starts with the filter keyword
         $pathComponents = $keyPath -split '\\'
         $hasMatch = $false
@@ -44,7 +43,6 @@ function Get-RegistrySnapshot {
         }
 
         if ([string]::IsNullOrEmpty($Filter) -or $hasMatch) {
-
             $key = $_
             try {
                 $key.GetValueNames() | ForEach-Object {
@@ -58,40 +56,63 @@ function Get-RegistrySnapshot {
     return $snapshot
 }
 
-# 1. Take the initial snapshot before making changes
-$snap1 = Get-RegistrySnapshot -Path $RegistryRoot -Filter $FilterKeyword
-Write-Host "`n[!] Initial Registry Snapshot Complete." -ForegroundColor Green
-Write-Host "[!] Make your changes in the target application now." -ForegroundColor Yellow
+function Compare-Snapshots {
+    param(
+        [hashtable]$SnapBefore,
+        [hashtable]$SnapAfter
+    )
+    $changesFound = $false
+
+    foreach ($key in $SnapAfter.Keys) {
+        if (-not $SnapBefore.ContainsKey($key)) {
+            Write-Host "[NEW]      $key = $($SnapAfter[$key])" -ForegroundColor Green
+            $changesFound = $true
+        } elseif ($SnapBefore[$key] -ne $SnapAfter[$key]) {
+            # Format arrays nicely if encountered (e.g. binary data)
+            $beforeVal = $SnapBefore[$key]
+            $afterVal = $SnapAfter[$key]
+            if ($beforeVal -is [array]) { $beforeVal = $beforeVal -join ' ' }
+            if ($afterVal -is [array]) { $afterVal = $afterVal -join ' ' }
+
+            Write-Host "[MODIFIED] $key" -ForegroundColor Yellow
+            Write-Host "   Before: $beforeVal" -ForegroundColor Gray
+            Write-Host "   After:  $afterVal" -ForegroundColor White
+            $changesFound = $true
+        }
+    }
+
+    foreach ($key in $SnapBefore.Keys) {
+        if (-not $SnapAfter.ContainsKey($key)) {
+            Write-Host "[DELETED]  $key" -ForegroundColor Red
+            $changesFound = $true
+        }
+    }
+
+    if (-not $changesFound) {
+        Write-Host "No changes detected." -ForegroundColor Gray
+    }
+}
+
+# 1. Take initial snapshots of both HKCU and HKLM
+$hkcuBefore = Get-RegistrySnapshot -Path "HKCU:\Software" -Filter $FilterKeyword
+$hklmBefore = Get-RegistrySnapshot -Path "HKLM:\Software" -Filter $FilterKeyword
+
+Write-Host "`n[!] Initial Registry Snapshots Complete." -ForegroundColor Green
+Write-Host "[!] Make your changes in the target application now (and close it when done)." -ForegroundColor Yellow
 Write-Host "[!] Press ENTER to take the second snapshot and compare..." -ForegroundColor Yellow
 $null = Read-Host
 
+# 2. Take second snapshots of both HKCU and HKLM
+$hkcuAfter = Get-RegistrySnapshot -Path "HKCU:\Software" -Filter $FilterKeyword
+$hklmAfter = Get-RegistrySnapshot -Path "HKLM:\Software" -Filter $FilterKeyword
 
-# 2. Take the second snapshot after changes are made
-$snap2 = Get-RegistrySnapshot -Path $RegistryRoot -Filter $FilterKeyword
+# 3. Output comparison in two clean chunks
+Write-Host "`n==================================================" -ForegroundColor Cyan
+Write-Host "--- CURRENT USER (HKCU) REGISTRY CHANGES ---" -ForegroundColor Cyan
+Write-Host "==================================================" -ForegroundColor Cyan
+Compare-Snapshots -SnapBefore $hkcuBefore -SnapAfter $hkcuAfter
 
-# 3. Compare and output differences
-Write-Host "`n--- REGISTRY CHANGES DETECTED ---" -ForegroundColor Cyan
-$changesFound = $false
-
-foreach ($key in $snap2.Keys) {
-    if (-not $snap1.ContainsKey($key)) {
-        Write-Host "[NEW]      $key = $($snap2[$key])" -ForegroundColor Green
-        $changesFound = $true
-    } elseif ($snap1[$key] -ne $snap2[$key]) {
-        Write-Host "[MODIFIED] $key" -ForegroundColor Yellow
-        Write-Host "   Before: $($snap1[$key])" -ForegroundColor Gray
-        Write-Host "   After:  $($snap2[$key])" -ForegroundColor White
-        $changesFound = $true
-    }
-}
-
-foreach ($key in $snap1.Keys) {
-    if (-not $snap2.ContainsKey($key)) {
-        Write-Host "[DELETED]  $key" -ForegroundColor Red
-        $changesFound = $true
-    }
-}
-
-if (-not $changesFound) {
-    Write-Host "No changes detected." -ForegroundColor Gray
-}
+Write-Host "`n==================================================" -ForegroundColor Cyan
+Write-Host "--- LOCAL MACHINE (HKLM) REGISTRY CHANGES ---" -ForegroundColor Cyan
+Write-Host "==================================================" -ForegroundColor Cyan
+Compare-Snapshots -SnapBefore $hklmBefore -SnapAfter $hklmAfter
