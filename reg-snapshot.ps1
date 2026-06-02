@@ -40,8 +40,9 @@ function Get-RegistrySnapshot {
 $snap1 = Get-RegistrySnapshot -Path $RegistryRoot -Filter $FilterKeyword
 Write-Host "`n[!] Initial Registry Snapshot Complete." -ForegroundColor Green
 Write-Host "[!] Make your changes in the target application now." -ForegroundColor Yellow
-Write-Host "[!] Press any key to take the second snapshot and compare..." -ForegroundColor Yellow
-$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+Write-Host "[!] Press ENTER to take the second snapshot and compare..." -ForegroundColor Yellow
+$null = Read-Host
+
 
 # 2. Take the second snapshot after changes are made
 $snap2 = Get-RegistrySnapshot -Path $RegistryRoot -Filter $FilterKeyword
