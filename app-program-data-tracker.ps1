@@ -32,8 +32,18 @@ function Get-FolderSnapshot {
     $snapshot = @{}
     Get-ChildItem -Path $Path -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
         $filePath = $_.FullName
-        # Apply filter keyword if defined
-        if ([string]::IsNullOrEmpty($Filter) -or $filePath -like "*$Filter*") {
+        # Split path by backslash and check if any component starts with the filter keyword
+        $pathComponents = $filePath -split '\\'
+        $hasMatch = $false
+        foreach ($comp in $pathComponents) {
+            if ($comp -like "$Filter*") {
+                $hasMatch = $true
+                break
+            }
+        }
+
+        if ([string]::IsNullOrEmpty($Filter) -or $hasMatch) {
+
             $snapshot[$filePath] = @{
                 LastWriteTime = $_.LastWriteTime
                 Length        = $_.Length

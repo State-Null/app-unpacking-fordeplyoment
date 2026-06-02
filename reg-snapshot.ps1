@@ -33,7 +33,18 @@ function Get-RegistrySnapshot {
     Get-ChildItem -Path $Path -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
         $keyPath = $_.Name
         # Apply filter keyword if defined
-        if ([string]::IsNullOrEmpty($Filter) -or $keyPath -like "*$Filter*") {
+        # Split path by backslash and check if any component starts with the filter keyword
+        $pathComponents = $keyPath -split '\\'
+        $hasMatch = $false
+        foreach ($comp in $pathComponents) {
+            if ($comp -like "$Filter*") {
+                $hasMatch = $true
+                break
+            }
+        }
+
+        if ([string]::IsNullOrEmpty($Filter) -or $hasMatch) {
+
             $key = $_
             try {
                 $key.GetValueNames() | ForEach-Object {
