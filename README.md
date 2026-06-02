@@ -1,6 +1,6 @@
 # app-unpacking-fordeplyoment
 
-A collection of lightweight, dependency-free PowerShell utility scripts designed for application packaging engineers, systems administrators, and deployment specialists (SCCM / Intune / MDT). 
+A collection of lightweight, dependency-free PowerShell utility scripts and commands designed for application packaging engineers, systems administrators, and deployment specialists (SCCM / Intune / MDT). 
 
 These tools help you discover silent installation parameters, find where applications save their settings (Registry or AppData), and track configurations to build robust deployment packages.
 
@@ -35,6 +35,19 @@ Queries the internal database of a `.msi` installer file and lists all propertie
   1. Set `$MsiPath` to point to your target `.msi` file.
   2. Run the script to output the property list.
   3. Customize your silent installation command (e.g., `msiexec /i installer.msi PUBLIC_PROPERTY=value /qn`).
+
+---
+
+### 4. Directory Tree Exporter (Built-in Windows Command)
+A quick, native way to generate a visual report showing the structure of folders and files without using any scripts.
+* **Best for:** Creating a clean, human-readable text map of a directory layout.
+* **Usage:**
+  Run the following command from Command Prompt or PowerShell (replace the paths with your own):
+  ```cmd
+  tree "C:\Path\To\Your\Directory" /f /a > "C:\Path\To\Your\Directory\report.txt"
+  ```
+  * `/f` lists the files in each folder.
+  * `/a` uses clean ASCII characters for tree lines, ensuring the output file looks formatted correctly in any text editor.
 
 ---
 
